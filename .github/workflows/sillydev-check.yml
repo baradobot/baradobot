@@ -1,0 +1,36 @@
+name: Verificar servidor SillyDev
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/sillydev-check.yml'
+permissions:
+  contents: read
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Consultar servidores sin exponer credenciales
+        env:
+          SILLYDEV_API_KEY: ${{ secrets.SILLYDEV_API_KEY }}
+        run: |
+          python - <<'PY'
+          import os, json, urllib.request, urllib.error
+          key=os.environ.get('SILLYDEV_API_KEY')
+          if not key:
+              raise SystemExit('Falta el secreto SILLYDEV_API_KEY')
+          req=urllib.request.Request('https://sillydev.co.uk/panel/api/client',headers={'Authorization':'Bearer '+key,'Accept':'application/json'})
+          try:
+              with urllib.request.urlopen(req,timeout=30) as r:
+                  data=json.load(r)
+          except urllib.error.HTTPError as e:
+              raise SystemExit(f'API devolvió HTTP {e.code}')
+          servers=data.get('data')
+          if not isinstance(servers,list):
+              raise SystemExit('Respuesta inesperada de la API')
+          print('Conexión API correcta. Servidores en primera página:',len(servers))
+          for s in servers:
+              a=s.get('attributes',{})
+              print('Servidor:',str(a.get('identifier',''))[:8], 'Nombre:',str(a.get('name','')).replace('\n',' ')[:80])
+          PY
