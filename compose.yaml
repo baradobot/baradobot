@@ -1,0 +1,9 @@
+services:
+  orion:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - orion-data:/data
+volumes:
+  orion-data:
